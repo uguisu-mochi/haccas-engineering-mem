@@ -1,0 +1,201 @@
+---
+import { getCollection } from 'astro:content';
+import type { CollectionEntry } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+// getStaticPaths: どのURL（記事）を生成するかをAstroに教えるための必須関数です
+export async function getStaticPaths() {
+  const blogEntries = await getCollection('blog');
+  return blogEntries.map((entry: CollectionEntry<'blog'>) => ({
+    params: { slug: entry.slug }, // URLの末尾になる部分
+    props: { entry },             // ページに渡す記事データ
+  }));
+}
+
+// 受け取るデータの型を定義
+interface Props {
+  entry: CollectionEntry<'blog'>;
+}
+
+const { entry } = Astro.props;
+const { Content } = await entry.render(); // MDXの中身をHTMLに変換する魔法の関数
+---
+
+<BaseLayout title={entry.data.title}>
+  <article class="post-wrapper">
+    <header class="post-header">
+      <div class="tags">
+        {entry.data.tags.map((tag: string) => (
+           /* 後でタグ一覧ページへのリンクに変更します */
+          <span class="tag-badge">#{tag}</span>
+        ))}
+      </div>
+      <h1 class="title">{entry.data.title}</h1>
+      <time class="date">
+        {entry.data.pubDate.toLocaleDateString('ja-JP')}
+      </time>
+      <img src={entry.data.eyecatch} alt={entry.data.title} class="eyecatch" />
+    </header>
+    
+    <div class="markdown-body">
+      {/* ここにMDXの本文が展開されます */}
+      <Content />
+    </div>
+  </article>
+</BaseLayout>
+
+<style>
+  /* --- 記事全体を白いボックスで囲む --- */
+  .post-wrapper {
+    background-color: #ffffff;
+    padding: 3rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  }
+  
+  /* --- ヘッダー（タイトルまわり） --- */
+  .post-header {
+    margin-bottom: 3rem;
+    text-align: center;
+  }
+
+  .tags {
+    margin-bottom: 1rem;
+  }
+
+  .tag-badge {
+    display: inline-block;
+    background-color: var(--color-base);
+    color: var(--color-link);
+    padding: 0.4rem 0.8rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    margin: 0 0.5rem;
+    font-weight: bold;
+  }
+
+  .title {
+    font-size: 2.2rem;
+    color: var(--color-text-main);
+    margin-bottom: 1rem;
+    line-height: 1.4;
+  }
+
+  .date {
+    color: var(--color-text-sub);
+    font-size: 1rem;
+  }
+
+  .eyecatch {
+    width: 100%;
+    height: auto;
+    max-height: 500px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-top: 2rem;
+  }
+
+  /* --- MDX本文のスタイル（文字間・行間を調整し読みやすく） --- */
+  .markdown-body {
+    font-size: 1.1rem;
+    line-height: 1.8; /* 行間を少し広めに */
+    color: var(--color-text-main);
+    letter-spacing: 0.03em; /* 要件通り、文字間を少し空ける */
+  }
+
+  .markdown-body h2 {
+    font-size: 1.6rem;
+    border-bottom: 2px solid var(--color-main);
+    padding-bottom: 0.5rem;
+    margin-top: 3rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .markdown-body p {
+    margin-bottom: 1.5rem;
+  }
+</style>
+
+{/* --- ここから追記 --- */}
+<script>
+  // ページ内のすべてのコードブロック（preタグ）を取得
+  const preTags = document.querySelectorAll('.markdown-body pre');
+
+  preTags.forEach((pre) => {
+    // 1. ボタンを絶対配置するための枠（ラッパー）を作る
+    const wrapper = document.createElement('div');
+    wrapper.className = 'code-wrapper';
+    
+    // 2. preタグをラッパーで包む
+    pre.parentNode?.insertBefore(wrapper, pre);
+    wrapper.appendChild(pre);
+
+    // 3. コピーボタンを作る
+    const button = document.createElement('button');
+    button.className = 'copy-button';
+    button.textContent = 'コピー';
+    wrapper.appendChild(button);
+
+    // 4. ボタンをクリックしたときの処理（クリップボードにコピー）
+    button.addEventListener('click', async () => {
+      // preの中のテキスト（コード）を取得
+      const code = pre.textContent || '';
+      
+      try {
+        await navigator.clipboard.writeText(code);
+        button.textContent = '完了!';
+        button.classList.add('copied');
+        
+        // 2秒後に元の文字に戻す
+        setTimeout(() => {
+          button.textContent = 'コピー';
+          button.classList.remove('copied');
+        }, 2000);
+      } catch (err) {
+        console.error('コピーに失敗しました', err);
+      }
+    });
+  });
+</script>
+
+<style is:global>
+  /* 追記: コピーボタン用のスタイル (is:globalをつけて動的生成される要素に適用) */
+  .code-wrapper {
+    position: relative; /* ボタンを右上に配置するための基準 */
+    margin-bottom: 1.5rem;
+  }
+
+  /* Astroが自動生成するpreタグのデザイン調整 */
+  .markdown-body pre {
+    padding: 1.5rem;
+    border-radius: 8px;
+    background-color: #2d3748; /* 暗い背景色 */
+    color: #f8fafc;
+    overflow-x: auto; /* 横に長いコードはスクロール */
+    font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+  }
+
+  .copy-button {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    padding: 0.3rem 0.8rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .copy-button:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+  }
+
+  /* コピー完了時のスタイル */
+  .copy-button.copied {
+    background-color: var(--color-main); /* 瑠璃色に変更 */
+    border-color: var(--color-main);
+  }
+</style>

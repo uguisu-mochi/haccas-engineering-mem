@@ -1,17 +1,124 @@
 ---
+import { getCollection } from 'astro:content';
+import type { CollectionEntry } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Card from '../components/Card.astro';
 
+// 'blog' フォルダ内のすべての記事データを取得
+const allPosts = await getCollection('blog');
+
+// --- データの振り分け処理 ---
+
+// ★ post に CollectionEntry<'blog'> という型を指定します
+const recommendedPost = allPosts.find((post: CollectionEntry<'blog'>) => post.data.isRecommended);
+
+// ★ こちらの post にも型を指定します
+const newPosts = allPosts
+  .filter((post: CollectionEntry<'blog'>) => post.slug !== recommendedPost?.slug)
+  // ★ sort の a と b にも型を指定します
+  .sort((a: CollectionEntry<'blog'>, b: CollectionEntry<'blog'>) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
 ---
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
-</html>
+<BaseLayout title="Home">
+  
+  {/* おすすめ記事が存在する場合のみ表示 */}
+  {recommendedPost && (
+    <section class="recommended-section">
+      <a href={`/blog/${recommendedPost.slug}`} class="recommended-card">
+        <div class="recommended-badge">Recommended</div>
+        <img src={recommendedPost.data.eyecatch} alt={recommendedPost.data.title} class="recommended-img" />
+        <div class="recommended-content">
+          <h2 class="recommended-title">{recommendedPost.data.title}</h2>
+        </div>
+      </a>
+    </section>
+  )}
+
+  <section class="new-posts-section">
+    <h2 class="section-title">New Articles</h2>
+    
+	{/* 新着記事のグリッドレイアウト */}
+    <div class="post-grid">
+      {/* ★ mapの中の post にも型を指定します */}
+      {newPosts.map((post: CollectionEntry<'blog'>) => (
+        <Card 
+          href={`/blog/${post.slug}`} 
+          title={post.data.title} 
+          eyecatch={post.data.eyecatch} 
+        />
+      ))}
+    </div>
+  </section>
+
+</BaseLayout>
+
+<style>
+  /* --- おすすめ記事（ファーストビュー） --- */
+  .recommended-section {
+    margin-bottom: 4rem; /* 新着記事との間隔を広く取る */
+  }
+
+  .recommended-card {
+    display: block;
+    position: relative; /* バッジを絶対配置するための基準 */
+    text-decoration: none;
+    border-radius: 12px;
+    overflow: hidden;
+    background-color: #ffffff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transition: transform 0.2s ease;
+  }
+
+  .recommended-card:hover {
+    transform: translateY(-4px);
+  }
+
+  /* 要件定義の「Accent（琥珀色）」を使ったバッジ */
+  .recommended-badge {
+    position: absolute;
+    top: 1rem;
+    left: 1rem;
+    background-color: var(--color-accent); 
+    color: #ffffff;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    letter-spacing: 0.05em;
+  }
+
+  .recommended-img {
+    width: 100%;
+    height: 400px; /* ファーストビューで目立つように高さを取る */
+    object-fit: cover;
+  }
+
+  .recommended-content {
+    padding: 1.5rem;
+  }
+
+  .recommended-title {
+    font-size: 1.8rem;
+    color: var(--color-text-main);
+    margin: 0;
+  }
+
+  /* --- 新着記事一覧 --- */
+  .section-title {
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+    color: var(--color-text-main);
+    border-left: 5px solid var(--color-main); /* 瑠璃色のアクセントライン */
+    padding-left: 0.8rem;
+    line-height: 1;
+  }
+
+  /* 画面幅に合わせて自動的に整列する魔法のGrid設定 
+    minmax(300px, 1fr) により、「最低300pxを確保しつつ、余白があれば均等に広がる」動きをします。
+  */
+  .post-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 2rem; /* カード同士の隙間 */
+  }
+</style>

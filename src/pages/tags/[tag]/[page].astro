@@ -1,0 +1,141 @@
+---
+import { getCollection } from 'astro:content';
+import type { CollectionEntry } from 'astro:content';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import Card from '../../../components/Card.astro';
+
+// getStaticPathsで「どのタグの、何ページ目を作るか」をAstroに指示します
+export async function getStaticPaths({ paginate }: { paginate: Function }) {
+  // 全記事を取得
+  const allPosts = await getCollection('blog');
+  
+  // 全記事からタグのリストを作り、重複をなくす
+  const uniqueTags = [...new Set(allPosts.map((post: CollectionEntry<'blog'>) => post.data.tags).flat())];
+  
+  // 各タグごとに記事を絞り込み、ページネーションを作成
+  return uniqueTags.flatMap((tag) => {
+    // このタグが含まれている記事だけを抽出
+    const filteredPosts = allPosts.filter((post: CollectionEntry<'blog'>) => post.data.tags.includes(tag));
+    
+    // 日付の新しい順（降順）に並び替え
+    filteredPosts.sort((a: CollectionEntry<'blog'>, b: CollectionEntry<'blog'>) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+    
+    // paginate関数で20件ずつに分割！
+    return paginate(filteredPosts, {
+      params: { tag },      // URLの [tag] に入る値
+      pageSize: 20          // 要件定義通り、20件でページング
+    });
+  });
+}
+
+// ページデータとURLパラメータ（タグ名）を受け取る
+const { page } = Astro.props;
+const { tag } = Astro.params;
+---
+
+<BaseLayout title={`#${tag} の記事一覧`}>
+  
+  <div class="tag-header">
+    <h1 class="page-title"><span class="hash">#</span>{tag}</h1>
+    <p class="page-count">全 {page.total} 件中 {page.start + 1} - {page.end + 1} 件目を表示</p>
+  </div>
+
+  {/* トップページと同じ、自動整列するグリッドレイアウト */}
+  <div class="post-grid">
+    {page.data.map((post: CollectionEntry<'blog'>) => (
+      <Card 
+        href={`/blog/${post.slug}`} 
+        title={post.data.title} 
+        eyecatch={post.data.eyecatch} 
+      />
+    ))}
+  </div>
+
+  {/* ページネーション（前へ / 次へ） */}
+  <div class="pagination">
+    {page.url.prev ? (
+      <a href={page.url.prev} class="page-link">&laquo; 前へ</a>
+    ) : (
+      <span class="page-link disabled">&laquo; 前へ</span>
+    )}
+    
+    <span class="current-page">{page.currentPage} / {page.lastPage}</span>
+    
+    {page.url.next ? (
+      <a href={page.url.next} class="page-link">次へ &raquo;</a>
+    ) : (
+      <span class="page-link disabled">次へ &raquo;</span>
+    )}
+  </div>
+
+</BaseLayout>
+
+<style>
+  /* --- タグのヘッダー部分 --- */
+  .tag-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #e2e8f0;
+  }
+
+  .page-title {
+    font-size: 2rem;
+    color: var(--color-text-main);
+    margin-bottom: 0.5rem;
+  }
+
+  .hash {
+    color: var(--color-main); /* ハッシュタグ記号だけ瑠璃色にしてアクセントに */
+    margin-right: 0.2rem;
+  }
+
+  .page-count {
+    color: var(--color-text-sub);
+    font-size: 0.95rem;
+  }
+
+  /* --- 記事一覧（トップページと同じGrid設定） --- */
+  .post-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-bottom: 3rem;
+  }
+
+  /* --- ページネーション --- */
+  .pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1.5rem;
+    margin-top: 2rem;
+  }
+
+  .page-link {
+    display: inline-block;
+    padding: 0.5rem 1.5rem;
+    background-color: #ffffff;
+    color: var(--color-main);
+    border: 1px solid var(--color-main);
+    border-radius: 4px;
+    text-decoration: none;
+    font-weight: bold;
+    transition: all 0.2s ease;
+  }
+
+  .page-link:hover:not(.disabled) {
+    background-color: var(--color-main);
+    color: #ffffff;
+  }
+
+  .page-link.disabled {
+    color: #cbd5e1;
+    border-color: #cbd5e1;
+    pointer-events: none; /* クリックできないようにする */
+  }
+
+  .current-page {
+    color: var(--color-text-main);
+    font-weight: bold;
+  }
+</style>
