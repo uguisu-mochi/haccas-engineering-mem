@@ -1,0 +1,40 @@
+---
+title: "Astroで作成したサイトでGA4を導入する方法"
+pubDate: 2026-02-26
+eyecatch: "https://pub-9b312e31e06e41f5b163a3930bf8c337.r2.dev/Thumbnails/Astro_thumnbnail.png"
+tags: ["Astro", "GA4"]
+isRecommended: false
+---
+
+Astroで作成したサイトにGA4のアナリティクス用のタグを設置する場合、GA4で発行されたコードをそのまま使えません。
+いくつか方法がありますが、私はastro-google-analyticsを使いました。  
+設置方法は以下のとおり。
+
+## 0.前提
+**GA4**でアナリティクスコード（G-XXXXXXXXXX）を取得します。  
+プロパティを作成し、「手動で設定」とすればコードを取得できます。  
+
+## 1.npmインストールする
+ターミナルから以下のコマンドでインストールします。
+
+```
+npm install astro-google-analytics
+```
+
+## 2.アナリティクスコードを設定する
+メインレイアウトのastroファイルに以下の記述を追加します。  
+G-XXXXXXXXXXの部分は、GA4で発行された自分のコードに置き換えます。  
+
+```
+---
+import { GoogleAnalytics } from 'astro-google-analytics';
+---
+
+<head>
+  <GoogleAnalytics id="G-XXXXXXXXXX" />
+</head>
+```
+
+設定後はデプロイし、GA4側も画面を進めて完了です。  
+  
+【参考】[npmサイト（astro-google-analytics）](https://gleamhub.net/media/astro-analytics-prod/)  
