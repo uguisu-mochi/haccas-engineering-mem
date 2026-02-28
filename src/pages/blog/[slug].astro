@@ -161,10 +161,25 @@ const { Content } = await entry.render(); // MDXの中身をHTMLに変換する�
 <style is:global>
 
   h2 {
-  margin: 5px;  
-  color:#004898;/*文字色*/
-  /*線の種類（点線）2px 線色*/
-  border-bottom: dashed 2px #004898;
+    margin-top: 10px;
+    padding: 5px;  
+    color:#004898;/*文字色*/
+    /*線の種類（点線）2px 線色*/
+    border-bottom: dashed 2px #004898;
+  }
+
+  h3 {
+    margin-top: 10px;
+    padding: 5px;
+    color:#004898;/*文字色*/
+  }
+
+  ul {
+    margin-left: 25px;
+  }
+
+  ol {
+    margin-left: 25px;
   }
 
   /* 追記: コピーボタン用のスタイル (is:globalをつけて動的生成される要素に適用) */
